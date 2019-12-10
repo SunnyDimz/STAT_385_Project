@@ -30,9 +30,35 @@ ccso = read.csv("CCSO Data.csv")
 #released reasons for each race, take the percentage of each race in each major category
 #election days,
 
-ccso1 = ccso %>% select(CRIME.CODE,RACE,Days.in.Jail) %>%
-        group_by(CRIME.CODE) %>%
-        summarise(sum(CRIME.CODE))
+library(tidyverse)
+ccso = read.csv("CCSO Data.csv")
+#released reasons for each race, take the percentage of each race in each major category
+
+View(ccso)
+attach(ccso)
+conversion = vars(Days.in.Jail,Hours,Minutes)
+to_num = function(x) {
+  as.numeric(as.character(x))
+}
+
+#total days spent in jail
+ccso1 = ccso %>% 
+  select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+  mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+  group_by(RACE) %>%
+  summarise(avg = mean(total_days,na.rm = T))
+View(ccso1)
+#this is for the same crime across race, View(ccso2) and use command f
+ccso2 = ccso %>% 
+        select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+        subset(RACE != "" & RACE != "Unknown") %>%
+        mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+        group_by(RACE,CRIME.CODE) %>%
+        summarise(avg = round(mean(total_days,na.rm = T),digits = 4)) # a min is .0007 days
+        
+levels(RACE)
+class(ccso2)
+View(ccso2)
 View(ccso1)
 ```
 
