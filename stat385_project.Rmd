@@ -1,0 +1,40 @@
+---
+title: "385_project"
+author: "Giovanni Rodriguez"
+date: "12/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+
+
+Giovanni
+```{r}
+
+library(tidyverse)
+ccso = read.csv("CCSO Data.csv")
+#released reasons for each race, take the percentage of each race in each major category
+#election days,
+
+ccso1 = ccso %>% select(CRIME.CODE,RACE,Days.in.Jail) %>%
+        group_by(CRIME.CODE) %>%
+        summarise(sum(CRIME.CODE))
+View(ccso1)
+```
+
+
+
