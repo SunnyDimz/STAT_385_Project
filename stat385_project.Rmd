@@ -25,7 +25,7 @@ plot(pressure)
 Giovanni
 ```{r}
 library(tidyverse)
-ccso = read.csv("CCSO.csv")
+ccso = read.csv("CCSO Data.csv")
 #released reasons for each race, take the percentage of each race in each major category
 #election days,
 
