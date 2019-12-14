@@ -61,7 +61,12 @@ View(ccso2)
 View(ccso1)
 ```
 
+
+
+
+
 ```{r, echo=FALSE}
+library(shiny)
 ui <- fluidPage(
   
   # App title ----
@@ -82,6 +87,8 @@ ui <- fluidPage(
       
       # Horizontal line ----
       tags$hr(),
+      selectInput("crime","Select a Crime code :",
+                  unique(ccso2$CRIME.CODE)),
       
       # Input: Checkbox if file has header ----
       checkboxInput("header", "Header", TRUE),
@@ -115,7 +122,8 @@ ui <- fluidPage(
     mainPanel(
       
       # Output: Data file ----
-      tableOutput("contents")
+      tableOutput("contents"),
+      plotOutput("plot")
       
     )
     
@@ -124,31 +132,31 @@ ui <- fluidPage(
 
 # Define server logic to read selected file ----
 server <- function(input, output) {
+  crime = reactive({
+    return(input$crime)
+  })
   
   output$contents <- renderTable({
     
-    # input$file1 will be NULL initially. After the user selects
-    # and uploads a file, head of that data file by default,
-    # or all rows if selected, will be shown.
-    
-    req(input$CCSO)
-    
-    df <- read.csv(input$CCSO$datapath,
-                   header = input$header,
-                   sep = input$sep,
-                   quote = input$quote)
-    
-    if(input$disp == "head") {
-      return(head(df))
-    }
-    else {
-      return(df)
-    }
+  c = crime()
+  table_name = ccso2 %>% 
+              filter(CRIME.CODE == c)
+  table_name
     
   })
-  options(shiny.maxRequestSize=30*1024^2)
+  
+  output$plot = renderPlot({
+  c = crime()
+  table_name = ccso2 %>% 
+              filter(CRIME.CODE == c)
+    ggplot(table_name, aes(x=RACE, y=avg)) +
+      geom_bar(stat="identity")
+  })
   
   
+  
+    
+    
 }
 # Run the app ----
 shinyApp(ui, server)
