@@ -33,18 +33,6 @@ ui <- fluidPage(
       )
    ),
    
-   sidebarLayout(
-     sidebarPanel(
-       sliderInput(inputId = "Days in Jail",
-                   label = "Days in Jail:",
-                   min = 0,
-                   max = 500,
-                   value = 10)
-     ),
-     mainPanel(
-       tableOutput("contents")
-     )
-   )
 )
 
 
@@ -54,10 +42,10 @@ server <- function(input, output) {
    output$distPlot <- renderPlot({
       # generate bins based on input$bins from ui.R
       x    <- CCSO2[, 2] 
-      bins <- seq(min(x), max(x), length.out = input$bins + 1)
+      bins <- seq(min(x), max(x), length.out = input$Days.in.Jail + 1)
       
       # draw the histogram with the specified number of bins
-      hist(x, breaks = bins, col = 'darkgray', border = 'white')
+      hist(x, breaks = Days.in.Jail, col = 'darkgray', border = 'white')
    })
    options(shiny.maxRequestSize=30*1024^2)
 }
