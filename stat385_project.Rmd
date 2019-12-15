@@ -97,6 +97,9 @@ ui <- fluidPage(
       # Horizontal line ----
       tags$hr(),
       
+      selectInput("disp", "Number of Individuals",
+                  choice = c(as.character(ccso2$RACE))),
+      
       # Input: Select number of rows to display ----
       radioButtons("disp", "Display",
                    choices = c(Head = "head",
