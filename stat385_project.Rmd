@@ -53,12 +53,16 @@ ccso2 = ccso %>%
         subset(RACE != "" & RACE != "Unknown") %>%
         mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
         group_by(RACE,CRIME.CODE) %>%
-        summarise(avg = round(mean(total_days,na.rm = T),digits = 4)) # a min is .0007 days
-        
-levels(RACE)
-class(ccso2)
-View(ccso2)
-View(ccso1)
+        summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4))  # a min is .0007 days 
+     
+ccso2 = ccso2 %>% rename(Days = avg)
+
+
+              
+
+
+  
+
 ```
 
 
@@ -88,7 +92,7 @@ ui <- fluidPage(
       # Horizontal line ----
       tags$hr(),
       selectInput("crime","Select a Crime code :",
-                  unique(ccso2$CRIME.CODE)),
+                  unique(ccso2$CRIME.CODE),selected = "AGGRAVATED ASSAULT"),
       
       # Input: Checkbox if file has header ----
       checkboxInput("header", "Header", TRUE),
@@ -139,7 +143,7 @@ server <- function(input, output) {
   c = crime()
   table_name = ccso2 %>% 
               filter(CRIME.CODE == c)
-    ggplot(table_name, aes(x=RACE, y=avg)) +
+    ggplot(table_name, aes(x=RACE, y=Days)) +
       geom_bar(stat="identity")
   })
   
