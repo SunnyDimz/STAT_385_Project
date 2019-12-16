@@ -76,33 +76,17 @@ ui <- fluidPage(
   # App title ----
   titlePanel("Champaign County Jail (2011-2016)"),
   
-  # Sidebar layout with input and output definitions ----
   sidebarLayout(
     
     # Sidebar panel for inputs ----
     sidebarPanel(
       
-      
-  
+    
       selectInput("crime","Select a Crime code :",
                   unique(ccso2$CRIME.CODE),selected = "AGGRAVATED ASSAULT"),
-<<<<<<< HEAD
-     
-     
-    
- 
-=======
-      
-      # Input: Checkbox if file has header ----
-      checkboxInput("header", "Header", TRUE),
-      
-      
-      # Horizontal line ----
-      tags$hr(),
-      
->>>>>>> 71e15a709aed61aa8ed5e538fd7c1ec67027bc7c
       selectInput("disp", "Number of Individuals",
-                  choice = c(as.character(ccso2$RACE))),
+                  choice = c(as.character(ccso2$RACE)))
+    ),
       
 
     
@@ -116,7 +100,6 @@ ui <- fluidPage(
     )
     
   )
-)
 )
 
 # Define server logic to read selected file ----
