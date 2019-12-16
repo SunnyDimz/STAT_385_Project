@@ -1,0 +1,149 @@
+---
+title: "385_project"
+author: "Giovanni Rodriguez"
+date: "12/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+
+
+Giovanni
+```{r}
+library(tidyverse)
+ccso = read.csv("CCSO Data.csv")
+#released reasons for each race, take the percentage of each race in each major category
+#election days,
+
+
+View(ccso)
+attach(ccso)
+conversion = vars(Days.in.Jail,Hours,Minutes)
+to_num = function(x) {
+  as.numeric(as.character(x))
+}
+
+#total days spent in jail
+ccso1 = ccso %>% 
+  select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+  mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+  group_by(RACE) %>%
+  summarise(avg = mean(total_days,na.rm = T))
+View(ccso1)
+#this is for the same crime across race, View(ccso2) and use command f
+ccso2 = ccso %>% 
+        select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+        subset(RACE != "" & RACE != "Unknown") %>%
+        mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+        group_by(RACE,CRIME.CODE) %>%
+        summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4)) # a min is .0007 days
+ccso2 <- ccso2 %>% rename(Days = avg)
+ccso3 = ccso %>% 
+        select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+        subset(RACE != "" & RACE != "Unknown") %>%
+        mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+        group_by(RACE,EMPLOYMENT.STATUS) %>%
+        summarise(total=n(), avg = round(mean(total_days,na.rm = T),digits = 4))
+ccso3 = ccso3 %>% rename(Days = avg)
+levels(RACE)
+class(ccso2)
+View(ccso2)
+View(ccso1)
+```
+
+
+
+
+
+```{r, echo=FALSE}
+library(shiny)
+ui <- fluidPage(
+  # App title ----
+  titlePanel("Champaign County Jail (2011-2016)"),
+  tabsetPanel(               
+    tabPanel("Crime Code",sidebarLayout(
+      sidebarPanel(
+        selectInput("crime","Select a Crime code :",unique(ccso2$CRIME.CODE),selected = "AGGRAVATED ASSAULT")
+        ),
+      mainPanel(
+        plotOutput("plot"),
+        tableOutput("contents")
+        )
+    )
+    ),
+    tabPanel("Employment Status", sidebarLayout(
+      sidebarPanel(
+        selectInput("Employment","Select an Employment Status", unique(ccso3$EMPLOYMENT.STATUS),selected = "STUDENT")
+      ),
+      mainPanel(
+        plotOutput("eplot"),
+        tableOutput("emp")
+      )
+    ))
+  )
+)
+      # tabPanel("Employment",
+      #   sidebarLayout(
+      #     sidebarPanel(selectInput("Employment", "Select Employment Status:",unique(ccso2$EMPLOYMENT.STATUS),selected = "STUDENT")
+      #          ),
+      #          mainPanel(
+      #            plotOutput("plot"),
+      #            tableOutput("contents")
+      #          )
+      #   )
+      # )
+    
+
+# Define server logic to read selected file ----
+server <- function(input, output) {
+  crime = reactive(
+    return(input$crime)
+  )
+  
+  output$contents <- renderTable({
+    
+  c = crime()
+  table_name = ccso2 %>% 
+              filter(CRIME.CODE == c)
+  table_name
+    
+  })
+  emp = reactive(
+    return(input$Employment)
+  )
+  output$emp <- renderTable({
+    e = emp()
+    table_emp = ccso3 %>% filter(EMPLOYMENT.STATUS == e)
+  })
+  output$eplot = renderPlot({
+    e = emp()
+    table_emp = ccso3 %>% filter(EMPLOYMENT.STATUS == e)
+    ggplot(table_emp, aes(x=RACE,y=Days)) + geom_bar(stat = "identity")
+  })
+  
+  output$plot = renderPlot({
+  c = crime()
+  table_name = ccso2 %>% 
+              filter(CRIME.CODE == c)
+    ggplot(table_name, aes(x=RACE, y=Days)) +
+      geom_bar(stat="identity")
+  })
+}
+# Run the app ----
+shinyApp(ui, server)
+```
+
