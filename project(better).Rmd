@@ -1,7 +1,7 @@
 ---
-title: "385_project"
-author: "Giovanni Rodriguez"
-date: "12/15/2019"
+title: "385_project_Fall_2019"
+author: "	Dmitriy Borzhkovskiy, Giovanni Rodriguez, Duyen Ho, Jason Han"
+date: "12/18/2019"
 output: html_document
 ---
 
