@@ -65,10 +65,6 @@ ccso2 = ccso2 %>% rename(Days = avg)
 
 ```
 
-
-
-
-
 ```{r, echo=FALSE}
 library(shiny)
 ui <- fluidPage(
@@ -78,27 +74,24 @@ ui <- fluidPage(
   
   sidebarLayout(
     
-    # Sidebar panel for inputs ----
     sidebarPanel(
-      
-    
-      selectInput("crime","Select a Crime code :",
-                  unique(ccso2$CRIME.CODE),selected = "AGGRAVATED ASSAULT"),
-      selectInput("disp", "Number of Individuals",
-                  choice = c(as.character(ccso2$RACE)))
-    ),
-      
-
-    
-    # Main panel for displaying outputs ----
-    mainPanel(
+      tabsetPanel(
+        tabPanel("Select a Crime Code", 
+          selectInput("crime","Select a Crime code:",
+                      unique(ccso2$CRIME.CODE),selected = "AGGRAVATED ASSAULT")
+                      ),
+                  
+        tabPanel("Select Unemployment Status",
+          selectInput("disp", "Unemployment Status",
+                      choice = c("placeholder1", "placeholder2", "placeholder3"))
+          ))),
+      mainPanel(
       
       # Output: Data file ----
       tableOutput("contents"),
       plotOutput("plot")
       
     )
-    
   )
 )
 
@@ -130,4 +123,6 @@ server <- function(input, output) {
 # Run the app ----
 shinyApp(ui, server)
 ```
+
+
 
