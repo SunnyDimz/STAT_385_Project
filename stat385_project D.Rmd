@@ -19,6 +19,7 @@ ccso = read.csv("CCSO Data.csv")
 
 #View(ccso)
 attach(ccso)
+View(ccso)
 conversion = vars(Days.in.Jail,Hours,Minutes)
 to_num = function(x) {
   as.numeric(as.character(x))
@@ -43,6 +44,7 @@ ccso2 <- ccso2 %>% rename(Days = avg)
 ccso3 = ccso %>% 
         select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
         subset(EMPLOYMENT.STATUS != "" & EMPLOYMENT.STATUS != "Unknown") %>% 
+        subset(RACE != "" & RACE != "Unknown") %>%
         mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
         group_by(RACE,EMPLOYMENT.STATUS) %>%
         summarise(total=n(), avg = round(mean(total_days,na.rm = T),digits = 4))
@@ -51,6 +53,7 @@ ccso3 = ccso3 %>% rename(Days = avg)
 ccso4 = ccso %>% 
         select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
         subset(MARITIAL.STATUS != "" & MARITIAL.STATUS != "Unknown") %>%
+        subset(RACE != "" & RACE != "Unknown") %>%
         mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
         group_by(RACE,MARITIAL.STATUS) %>%
         summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4))  # a min is .0007 days 
@@ -59,6 +62,7 @@ ccso4 = ccso4 %>% rename(Days = avg)
 ccso5 = ccso %>% 
         select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
         subset(CITY != "" & CITY != "Unknown") %>%
+        subset(RACE != "" & RACE != "Unknown") %>%
         mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
         group_by(RACE,CITY) %>%
         summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4))  # a min is .0007 days
@@ -69,33 +73,48 @@ ccso5 = ccso5 %>% rename(Days = avg)
 
 
 ```{r, echo=FALSE}
+install.packages(shinythemes)
 library(shiny)
 library(scales)
 library(ggplot2)
-install.packages("shinythemes")
+library(gridExtra)
 library(shinythemes)
-ui <- fluidPage(theme = shinytheme("sandstone"),
+ui <- fluidPage(theme = shinytheme("superhero"),
   # App title ----
   titlePanel("Champaign County Jail (2011-2016)"),
   tabsetPanel(               
-    tabPanel("Crime Code",
-             sidebarLayout(
-               sidebarPanel(
-                 selectInput("crime","Select a Crime code :",unique(ccso2$CRIME.CODE),selected = "AGGRAVATED ASSAULT")        ),
+    tabPanel("Crime Code",sidebarLayout(
+      sidebarPanel(
+        selectInput("crime","Select a Crime Code:",unique(ccso2$CRIME.CODE),selected = "AGGRAVATED ASSAULT"),
+        
+        selectInput("crime2","Select a Second Crime Code:",unique(ccso2$CRIME.CODE), selected = "DRIVING UNDER THE INFLUENCE OF ALCOHOL" )
+        ),
+      
       mainPanel(
         plotOutput("plot"),
         tableOutput("contents")
-        ))),
+        )
+      
+    )
+    #second sidebarPanel
     
-    tabPanel("Employment Status", 
-             sidebarLayout(
-               sidebarPanel(
-                 selectInput("Employment","Select an Employment Status", unique(ccso3$EMPLOYMENT.STATUS),selected = "Student")),
+    
+    
+    
+    
+    
+    
+    ),
+    tabPanel("Employment Status", sidebarLayout(
+      sidebarPanel(
+        selectInput("Employment","Select an Employment Status", unique(ccso3$EMPLOYMENT.STATUS),selected = "Student")
+      ),
       mainPanel(
         plotOutput("eplot"),
         tableOutput("emp")
-        ))), 
-  
+        )
+    )
+    ), 
     tabPanel("Maritial Status", sidebarLayout(
       sidebarPanel(
         selectInput("maritial","Select a Maritial Status:", unique(ccso4$MARITIAL.STATUS),selected = "Single")
@@ -115,24 +134,36 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
         tableOutput("Region")
         )
     )
-    ))
+    )
   )
-
-
+)
  
 
 # Define server logic to read selected file ----
 server <- function(input, output) {
+  #rendering the table for crime.codes
   crime = reactive(
     return(input$crime)
   )
   
-  output$contents <- renderTable({
-    c = crime()
-    table_name = ccso2 %>% 
-              filter(CRIME.CODE == c)
-    table_name
-  })
+  crime2 = reactive(
+    return(input$crime2)
+  )
+  
+  # output$contents <- renderTable({
+  #   c = crime()
+  #   d = crime2()
+  #   table_name = ccso2 %>% filter(CRIME.CODE == c)
+  #   crime2_table = ccso2 %>% filter(CRIME.CODE == d)
+  #   
+  #   t1 = tableGrob(table_name)
+  #   t2 = tableGrob(crime2_table)
+  #   
+  #   grid.arrange(t1,t2, ncol = 2)
+  #   
+  # 
+  #   
+  # })
   
   emp = reactive(
     return(input$Employment)
@@ -166,19 +197,52 @@ server <- function(input, output) {
     table_ct
   })
   #plot for crime code
+  
+  
+  
   output$plot = renderPlot({
+  
    c = crime()
-   table_name = ccso2 %>% 
-              filter(CRIME.CODE == c)
-   ggplot(table_name, aes(x=RACE, y=Days,fill = RACE)) + geom_col(stat="identity") +
+   d = crime2()
+   
+   
+   
+   table_name = ccso2 %>% filter(CRIME.CODE == c)
+   
+   crime2_table = ccso2 %>% filter(CRIME.CODE == d)
+   
+  p1 = ggplot(table_name, aes(x=RACE, y=Days,fill = RACE)) + geom_col(stat="identity", position = position_dodge(width = 0.9, preserve = "single")) +
+     geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver()) 
+  
+  p2 = ggplot(crime2_table, aes(x=RACE, y=Days,fill = RACE)) + geom_col(stat="identity", position = position_dodge(width = 0.9, preserve = "single")) +
      geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver())
+  
+  table_name = ccso2 %>% filter(CRIME.CODE == c)
+    crime2_table = ccso2 %>% filter(CRIME.CODE == d)
+    
+    
+    
+    t1 = tableGrob(table_name)
+    t2 = tableGrob(crime2_table)
+    
+  
+    
+    
+ 
+   grid.arrange(p1,p2,
+                t1[,-c(3)],
+                t2[,-c(3)],
+                ncol=2, nrow=2)
+  
+    
   })
   #plot for employment status
   output$eplot = renderPlot({
     e = emp()
     table_emp = ccso3 %>% 
               filter(EMPLOYMENT.STATUS == e)
-    ggplot(table_emp, aes(x=RACE,y=Days,fill = RACE)) + geom_bar(stat = "identity")
+    ggplot(table_emp, aes(x=RACE,y=Days,fill = RACE)) + geom_col(stat="identity", position = position_dodge(width = 0.9, preserve = "single")) +
+     geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver())
   })
   
 
@@ -186,17 +250,18 @@ server <- function(input, output) {
     m = maritial()
     table_mar = ccso4 %>% 
               filter(MARITIAL.STATUS == m)
-    ggplot(table_mar, aes(x=RACE,y=Days,fill = RACE)) + geom_bar(stat = "identity") 
+    ggplot(table_mar, aes(x=RACE,y=Days,fill = RACE)) + geom_col(stat="identity", position = position_dodge(width = 0.9, preserve = "single")) +
+     geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver()) 
   })
   
   output$tplot = renderPlot({
     t = city()
     table_ct = ccso5 %>%
               filter(CITY == t)
-      ggplot(table_ct, aes(x=RACE,y=Days,fill =RACE)) + geom_bar(stat = "identity")
+      ggplot(table_ct, aes(x=RACE,y=Days,fill =RACE)) + geom_col(stat="identity", position = position_dodge(width = 0.9, preserve = "single")) +
+     geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver())
   })
 }
-
 # Run the app ----
 shinyApp(ui, server)
 ```
