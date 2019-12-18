@@ -1,0 +1,338 @@
+---
+title: "385_project"
+author: "Dmitriy Borzhkovskiy, Giovanni Rodriguez, Duyen Ho, Jason Han"
+date: "12/18/2019"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(broom)
+ccso = read.csv("CCSO Data.csv")
+#released reasons for each race, take the percentage of each race in each major category
+#election days,
+#released reasons for each race, take the percentage of each race in each major category
+
+#View(ccso)
+attach(ccso)
+View(ccso)
+conversion = vars(Days.in.Jail,Hours,Minutes)
+to_num = function(x) {
+  as.numeric(as.character(x))
+}
+
+#total days spent in jail
+ccso1 = ccso %>% 
+  select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+  mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+  group_by(RACE) %>%
+  summarise(avg = mean(total_days,na.rm = T))
+#this is for the same crime across race, View(ccso2) and use command f
+##ccso2 was for total days in jail
+ccso2 = ccso %>% 
+        select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+        subset(RACE != "" & RACE != "Unknown") %>%
+        mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+        group_by(RACE,CRIME.CODE) %>%
+        summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4)) # a min is .0007 days
+ccso2 <- ccso2 %>% rename(Days = avg)
+
+ccso3 = ccso %>% 
+        select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+        subset(EMPLOYMENT.STATUS != "" & EMPLOYMENT.STATUS != "Unknown") %>% 
+        subset(RACE != "" & RACE != "Unknown") %>%
+        mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+        group_by(RACE,EMPLOYMENT.STATUS) %>%
+        summarise(total=n(), avg = round(mean(total_days,na.rm = T),digits = 4))
+ccso3 = ccso3 %>% rename(Days = avg)
+
+ccso4 = ccso %>% 
+        select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+        subset(MARITIAL.STATUS != "" & MARITIAL.STATUS != "Unknown") %>%
+        subset(RACE != "" & RACE != "Unknown") %>%
+        mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+        group_by(RACE,MARITIAL.STATUS) %>%
+        summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4))  # a min is .0007 days 
+ccso4 = ccso4 %>% rename(Days = avg)
+
+ccso5 = ccso %>% 
+        select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+        subset(CITY != "" & CITY != "Unknown") %>%
+        subset(RACE != "" & RACE != "Unknown") %>%
+        mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+        group_by(RACE,CITY) %>%
+        summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4))  # a min is .0007 days
+ccso5 = ccso5 %>% rename(Days = avg)
+ #regression
+
+ccso_reg = ccso %>% select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>% subset(RACE != "" & RACE != "Unknown" & EMPLOYMENT.STATUS != "" & MARITIAL.STATUS != "Unkown" & MARITIAL.STATUS != "") %>% mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440)
+ccso_reg$black <- factor( with (ccso_reg, ifelse((RACE == "Black"),1,0)))
+ccso_reg$na <- factor( with (ccso_reg, ifelse((RACE == "Native American"),1,0)))
+ccso_reg$hispanic <- factor( with (ccso_reg, ifelse((RACE == "Hispanic" | RACE == "White (Hispanic)"),1,0)))
+ccso_reg$violent <- factor(ifelse(grepl("ASSAULT|BATTERY|VIOLENCE|AGGRAVATED|ARMED|MURDER|HOMICIDE|MANSLAUGHTER|HATE CRIME",ccso_reg$CRIME.CODE),1,0))
+ccso_reg$theft <- factor(ifelse(grepl("THEFT",ccso_reg$CRIME.CODE),1,0))
+ccso_reg$employed <- factor(with(ccso_reg,ifelse((EMPLOYMENT.STATUS == "Self Employed" | EMPLOYMENT.STATUS == "Employed - Full Time"| EMPLOYMENT.STATUS == "Employed - Part Time"),1,0)))
+ccso_reg$married = factor(with(ccso_reg,ifelse((MARITIAL.STATUS == "Married" | MARITIAL.STATUS == "Significant Other"),1,0)))
+ccso_reg$female = factor(with(ccso_reg,ifelse((SEX == "Female"),1,0)))
+attach(ccso_reg)
+reg = lm(total_days~black+na+hispanic+violent+employed+Age.at.Arrest+female+theft,data = ccso_reg)
+
+
+
+```
+
+
+```{r, echo=FALSE}
+library(shiny)
+library(scales)
+library(ggplot2)
+library(gridExtra)
+library(shinythemes)
+#install.packages("cowplot")
+library(cowplot)
+ui <- fluidPage(theme = shinytheme("superhero"),
+  # App title ----
+  titlePanel("Champaign County Jail (2011-2016)"),
+  tabsetPanel(               
+    tabPanel("Crime Code",sidebarLayout(
+      sidebarPanel(
+        selectInput("crime","Select a Crime Code:",unique(ccso2$CRIME.CODE),selected = "AGGRAVATED ASSAULT"),
+        
+        selectInput("crime2","Select a Second Crime Code:",unique(ccso2$CRIME.CODE), selected = "DRIVING UNDER THE INFLUENCE OF ALCOHOL" )
+        ),
+      
+      mainPanel(
+        plotOutput("plot"),
+        tableOutput("contents"),
+        plotOutput("plot2"),
+        tableOutput("contents2")
+        
+        )
+      
+    )
+    #second sidebarPanel
+    
+    
+    ),
+    tabPanel("Employment Status", sidebarLayout(
+      sidebarPanel(
+        selectInput("Employment","Select an Employment Status:", unique(ccso3$EMPLOYMENT.STATUS),selected = "Student"),
+        
+        selectInput("Employment2","Select a Second Employment Status:",
+        unique(ccso3$EMPLOYMENT.STATUS), selected = "Unemployed")
+    
+      
+      ),
+      mainPanel(
+        plotOutput("eplot"),
+        tableOutput("emp"),
+        plotOutput("eplot2"),
+        tableOutput("emp2")
+        )
+    )
+    ),
+     
+    tabPanel("Maritial Status", sidebarLayout(
+      sidebarPanel(
+        selectInput("maritial","Select a Maritial Status:", unique(ccso4$MARITIAL.STATUS),selected = "Single"),
+        
+        selectInput("maritial2","Select a Maritial Status:", unique(ccso4$MARITIAL.STATUS),selected = "Married")
+        
+        
+      ),
+      mainPanel(
+        plotOutput("mplot"),
+        tableOutput("Maritial"),
+        plotOutput("mplot2"),
+        tableOutput("Maritial2")
+        )
+    )
+    ),
+    tabPanel("City", sidebarLayout(
+      sidebarPanel(
+        selectInput("city","Select a City:", unique(ccso5$CITY),selected = "CHAMPAIGN")
+      ),
+      mainPanel(
+        plotOutput("tplot"),
+        tableOutput("Region")
+        )
+    )
+    ),
+    tabPanel("Regression",
+      mainPanel(
+        plotOutput("reg")
+        )
+    )
+  )
+)
+ 
+
+# Define server logic to read selected file ----
+server <- function(input, output) {
+  #rendering the table for crime.codes
+  crime = reactive(
+    return(input$crime)
+  )
+  
+  crime2 = reactive(
+    return(input$crime2)
+  )
+  
+  output$contents <- renderTable({
+    c = crime()
+    
+    table_name = ccso2 %>% filter(CRIME.CODE == c)
+    table_name
+  
+  })
+  
+  output$contents2 = renderTable({
+    d= crime2()
+    crime2_table = ccso2 %>% filter(CRIME.CODE == d)
+    crime2_table
+    
+    
+  })
+  
+  emp = reactive(
+    return(input$Employment)
+  )
+  emp2 = reactive (
+    return(input$Employment2)
+  )
+  
+  output$emp <- renderTable({
+    e = emp()
+    table_emp = ccso3 %>% filter(EMPLOYMENT.STATUS == e)
+    table_emp
+  })
+  
+  output$emp2 = renderTable( {
+    e2 = emp2()
+    table_emp2 = ccso3 %>% filter(EMPLOYMENT.STATUS == e2)
+    table_emp2
+  })
+  
+  maritial = reactive(
+    return(input$maritial)
+  )
+  
+  maritial2 = reactive(
+    return(input$maritial2)
+  )
+  
+  output$Maritial <- renderTable({
+    m = maritial()
+    table_mar = ccso4 %>% 
+               filter(MARITIAL.STATUS == m)
+    table_mar
+  })
+  
+  
+  output$Maritial2 <- renderTable({
+    m = maritial2()
+    table_mar = ccso4 %>% 
+               filter(MARITIAL.STATUS == m)
+    table_mar
+  })
+  
+  
+  
+  city = reactive(
+    return(input$city)
+  )
+  
+  output$Region <- renderTable({
+    t = city()
+    table_ct = ccso5 %>%
+              filter(CITY == t)
+    table_ct
+  })
+  #plot for crime code
+  
+  
+  
+  output$plot = renderPlot({
+  
+   c = crime()
+   
+   table_name = ccso2 %>% filter(CRIME.CODE == c)
+   
+   #crime2_table = ccso2 %>% filter(CRIME.CODE == d)
+   
+  p1 = ggplot(table_name, aes(x=RACE, y=Days,fill = RACE)) + geom_col(stat="identity", position = position_dodge(width = 0.9, preserve = "single")) +
+     geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver()) 
+  
+  p1
+  
+  })
+  
+  output$plot2 = renderPlot({
+    d = crime2()
+    crime2_table = ccso2 %>% filter(CRIME.CODE == d)
+    
+    p2 = ggplot(crime2_table, aes(x=RACE, y=Days,fill = RACE)) + geom_col(stat="identity", position = position_dodge(width = 0.9, preserve = "single")) +
+     geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver())
+    
+    p2
+    
+    
+  })
+  #plot for employment status
+  output$eplot = renderPlot({
+    e = emp()
+    table_emp = ccso3 %>% 
+              filter(EMPLOYMENT.STATUS == e)
+    ggplot(table_emp, aes(x=RACE,y=Days,fill = RACE)) + geom_col(stat="identity", position = position_dodge(width = 0.9, preserve = "single")) +
+     geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver())
+  })
+  
+  
+  output$eplot2 = renderPlot({
+    e = emp2()
+    table_emp = ccso3 %>% 
+              filter(EMPLOYMENT.STATUS == e)
+    ggplot(table_emp, aes(x=RACE,y=Days,fill = RACE)) + geom_col(stat="identity", position = position_dodge(width = 0.9, preserve = "single")) +
+     geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver())
+  })
+  
+
+  output$mplot = renderPlot({
+    m = maritial()
+    table_mar = ccso4 %>% 
+              filter(MARITIAL.STATUS == m)
+    ggplot(table_mar, aes(x=RACE,y=Days,fill = RACE)) + geom_col(stat="identity", position = position_dodge(width = 0.9, preserve = "single")) +
+     geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver()) 
+  })
+  
+  
+  output$mplot2 = renderPlot({
+    m = maritial2()
+    table_mar = ccso4 %>% 
+              filter(MARITIAL.STATUS == m)
+    ggplot(table_mar, aes(x=RACE,y=Days,fill = RACE)) + geom_col(stat="identity", position = position_dodge(width = 0.9, preserve = "single")) +
+     geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver()) 
+  })
+  
+  output$tplot = renderPlot({
+    t = city()
+    table_ct = ccso5 %>%
+              filter(CITY == t)
+      ggplot(table_ct, aes(x=RACE,y=Days,fill =RACE)) + geom_col(stat="identity", position = position_dodge(width = 0.9, preserve = "single")) +
+     geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver())
+  })
+  
+  output$reg = renderPlot({
+    table = grid.table(tidy(reg))
+    table
+  })
+}
+# Run the app ----
+shinyApp(ui, server)
+```
+
