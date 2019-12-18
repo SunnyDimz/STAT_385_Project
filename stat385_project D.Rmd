@@ -43,6 +43,7 @@ ccso2 <- ccso2 %>% rename(Days = avg)
 ccso3 = ccso %>% 
         select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
         subset(EMPLOYMENT.STATUS != "" & EMPLOYMENT.STATUS != "Unknown") %>% 
+        subset(RACE != "" & RACE != "Unknown") %>%
         mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
         group_by(RACE,EMPLOYMENT.STATUS) %>%
         summarise(total=n(), avg = round(mean(total_days,na.rm = T),digits = 4))
@@ -51,6 +52,7 @@ ccso3 = ccso3 %>% rename(Days = avg)
 ccso4 = ccso %>% 
         select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
         subset(MARITIAL.STATUS != "" & MARITIAL.STATUS != "Unknown") %>%
+        subset(RACE != "" & RACE != "Unknown") %>%
         mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
         group_by(RACE,MARITIAL.STATUS) %>%
         summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4))  # a min is .0007 days 
@@ -59,6 +61,7 @@ ccso4 = ccso4 %>% rename(Days = avg)
 ccso5 = ccso %>% 
         select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
         subset(CITY != "" & CITY != "Unknown") %>%
+        subset(RACE != "" & RACE != "Unknown") %>%
         mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
         group_by(RACE,CITY) %>%
         summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4))  # a min is .0007 days
