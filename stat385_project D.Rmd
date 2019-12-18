@@ -97,13 +97,9 @@ ui <- fluidPage(theme = shinytheme("superhero"),
       
     )
     #second sidebarPanel
-    
-    
-    
-    
-    
-    
-    
+    #hr(),
+    #print("~~~my disclaimer~~~~")
+  
     ),
     tabPanel("Employment Status", sidebarLayout(
       sidebarPanel(
@@ -114,6 +110,9 @@ ui <- fluidPage(theme = shinytheme("superhero"),
         tableOutput("emp")
         )
     )
+    
+    #hr(),
+    #print("~~~my disclaimer~~~~")
     ), 
     tabPanel("Maritial Status", sidebarLayout(
       sidebarPanel(
