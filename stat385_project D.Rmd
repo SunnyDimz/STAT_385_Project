@@ -1,0 +1,201 @@
+---
+title: "385_project"
+author: "Dmitriy Borzhkovskiy, Giovanni Rodriguez, Duyen Ho, Jason Han"
+date: "12/18/2019"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+ccso = read.csv("CCSO Data.csv")
+#released reasons for each race, take the percentage of each race in each major category
+#election days,
+#released reasons for each race, take the percentage of each race in each major category
+
+#View(ccso)
+attach(ccso)
+conversion = vars(Days.in.Jail,Hours,Minutes)
+to_num = function(x) {
+  as.numeric(as.character(x))
+}
+
+#total days spent in jail
+ccso1 = ccso %>% 
+  select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+  mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+  group_by(RACE) %>%
+  summarise(avg = mean(total_days,na.rm = T))
+#this is for the same crime across race, View(ccso2) and use command f
+##ccso2 was for total days in jail
+ccso2 = ccso %>% 
+        select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+        subset(RACE != "" & RACE != "Unknown") %>%
+        mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+        group_by(RACE,CRIME.CODE) %>%
+        summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4)) # a min is .0007 days
+ccso2 <- ccso2 %>% rename(Days = avg)
+
+ccso3 = ccso %>% 
+        select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+        subset(EMPLOYMENT.STATUS != "" & EMPLOYMENT.STATUS != "Unknown") %>% 
+        mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+        group_by(RACE,EMPLOYMENT.STATUS) %>%
+        summarise(total=n(), avg = round(mean(total_days,na.rm = T),digits = 4))
+ccso3 = ccso3 %>% rename(Days = avg)
+
+ccso4 = ccso %>% 
+        select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+        subset(MARITIAL.STATUS != "" & MARITIAL.STATUS != "Unknown") %>%
+        mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+        group_by(RACE,MARITIAL.STATUS) %>%
+        summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4))  # a min is .0007 days 
+ccso4 = ccso4 %>% rename(Days = avg)
+
+ccso5 = ccso %>% 
+        select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
+        subset(CITY != "" & CITY != "Unknown") %>%
+        mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
+        group_by(RACE,CITY) %>%
+        summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4))  # a min is .0007 days
+ccso5 = ccso5 %>% rename(Days = avg)
+
+
+```
+
+
+```{r, echo=FALSE}
+library(shiny)
+library(scales)
+library(ggplot2)
+ui <- fluidPage(
+  # App title ----
+  titlePanel("Champaign County Jail (2011-2016)"),
+  tabsetPanel(               
+    tabPanel("Crime Code",sidebarLayout(
+      sidebarPanel(
+        selectInput("crime","Select a Crime code :",unique(ccso2$CRIME.CODE),selected = "AGGRAVATED ASSAULT")
+        ),
+      mainPanel(
+        plotOutput("plot"),
+        tableOutput("contents")
+        )
+    )
+    ),
+    tabPanel("Employment Status", sidebarLayout(
+      sidebarPanel(
+        selectInput("Employment","Select an Employment Status", unique(ccso3$EMPLOYMENT.STATUS),selected = "Student")
+      ),
+      mainPanel(
+        plotOutput("eplot"),
+        tableOutput("emp")
+        )
+    )
+    ), 
+    tabPanel("Maritial Status", sidebarLayout(
+      sidebarPanel(
+        selectInput("maritial","Select a Maritial Status:", unique(ccso4$MARITIAL.STATUS),selected = "Single")
+      ),
+      mainPanel(
+        plotOutput("mplot"),
+        tableOutput("Maritial")
+        )
+    )
+    ),
+    tabPanel("City", sidebarLayout(
+      sidebarPanel(
+        selectInput("city","Select a City:", unique(ccso5$CITY),selected = "CHAMPAIGN")
+      ),
+      mainPanel(
+        plotOutput("tplot"),
+        tableOutput("Region")
+        )
+    )
+    )
+  )
+)
+ 
+
+# Define server logic to read selected file ----
+server <- function(input, output) {
+  crime = reactive(
+    return(input$crime)
+  )
+  
+  output$contents <- renderTable({
+    c = crime()
+    table_name = ccso2 %>% 
+              filter(CRIME.CODE == c)
+    table_name
+  })
+  
+  emp = reactive(
+    return(input$Employment)
+  )
+  
+  output$emp <- renderTable({
+    e = emp()
+    table_emp = ccso3 %>% filter(EMPLOYMENT.STATUS == e)
+    table_emp
+  })
+  
+  maritial = reactive(
+    return(input$maritial)
+  )
+  
+  output$Maritial <- renderTable({
+    m = maritial()
+    table_mar = ccso4 %>% 
+               filter(MARITIAL.STATUS == m)
+    table_mar
+  })
+  
+  city = reactive(
+    return(input$city)
+  )
+  
+  output$Region <- renderTable({
+    t = city()
+    table_ct = ccso5 %>%
+              filter(CITY == t)
+    table_ct
+  })
+  #plot for crime code
+  output$plot = renderPlot({
+   c = crime()
+   table_name = ccso2 %>% 
+              filter(CRIME.CODE == c)
+   ggplot(table_name, aes(x=RACE, y=Days,fill = RACE)) + geom_col(stat="identity") +
+     geom_text(aes(label = round(Days,2)), color = "black", vjust= 1.6) + scale_y_continuous(name = waiver())
+  })
+  #plot for employment status
+  output$eplot = renderPlot({
+    e = emp()
+    table_emp = ccso3 %>% 
+              filter(EMPLOYMENT.STATUS == e)
+    ggplot(table_emp, aes(x=RACE,y=Days,fill = RACE)) + geom_bar(stat = "identity") 
+  })
+  
+
+  output$mplot = renderPlot({
+    m = maritial()
+    table_mar = ccso4 %>% 
+              filter(MARITIAL.STATUS == m)
+    ggplot(table_mar, aes(x=RACE,y=Days,fill = RACE)) + geom_bar(stat = "identity") 
+  })
+  
+  output$tplot = renderPlot({
+    t = city()
+    table_ct = ccso5 %>%
+              filter(CITY == t)
+      ggplot(table_ct, aes(x=RACE,y=Days,fill =RACE)) + geom_bar(stat = "identity")
+  })
+}
+# Run the app ----
+shinyApp(ui, server)
+```
+
