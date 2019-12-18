@@ -83,8 +83,10 @@ ui <- fluidPage(
                   
         tabPanel("Select Unemployment Status",
           selectInput("disp", "Unemployment Status",
-                      choice = c("placeholder1", "placeholder2", "placeholder3"))
-          ))),
+                      choice = c("placeholder1", "placeholder2", "placeholder3")),
+          
+        tabPanel("Maritial Status")
+        ))),
       mainPanel(
       
       # Output: Data file ----
@@ -117,7 +119,7 @@ server <- function(input, output) {
     ggplot(table_name, aes(x=RACE, y=Days)) +
       geom_bar(stat="identity")
   })
-  
+  3
     
 }
 # Run the app ----
