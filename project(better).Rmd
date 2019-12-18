@@ -1,6 +1,6 @@
 ---
 title: "385_project_Fall_2019"
-author: "	Dmitriy Borzhkovskiy, Giovanni Rodriguez, Duyen Ho, Jason Han"
+author: "Dmitriy Borzhkovskiy, Giovanni Rodriguez, Duyen Ho, Jason Han"
 date: "12/18/2019"
 output: html_document
 ---
@@ -58,6 +58,10 @@ View(ccso1)
 ```{r, echo=FALSE}
 library(shiny)
 ui <- fluidPage(
+  h1("Dmitriy, Giovanni, Duyen, Jason"),
+  
+  #tags$head(tags$style("Dmitriy, Giovanni, Duyen, Jason {color:red;}")),
+  
   # App title ----
   titlePanel("Champaign County Jail (2011-2016)"),
   tabsetPanel(               

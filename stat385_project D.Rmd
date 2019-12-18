@@ -43,7 +43,6 @@ ccso2 <- ccso2 %>% rename(Days = avg)
 ccso3 = ccso %>% 
         select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
         subset(EMPLOYMENT.STATUS != "" & EMPLOYMENT.STATUS != "Unknown") %>% 
-        subset(RACE != "" & RACE != "Unknown") %>%
         mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
         group_by(RACE,EMPLOYMENT.STATUS) %>%
         summarise(total=n(), avg = round(mean(total_days,na.rm = T),digits = 4))
@@ -52,7 +51,6 @@ ccso3 = ccso3 %>% rename(Days = avg)
 ccso4 = ccso %>% 
         select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
         subset(MARITIAL.STATUS != "" & MARITIAL.STATUS != "Unknown") %>%
-        subset(RACE != "" & RACE != "Unknown") %>%
         mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
         group_by(RACE,MARITIAL.STATUS) %>%
         summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4))  # a min is .0007 days 
@@ -61,7 +59,6 @@ ccso4 = ccso4 %>% rename(Days = avg)
 ccso5 = ccso %>% 
         select(-c(BOOKING.NUMBER,JACKET.NUMBER,JACKET.TYPE,MILITARY,STATUTE.TYPE,CHARGE.STATUTE)) %>%
         subset(CITY != "" & CITY != "Unknown") %>%
-        subset(RACE != "" & RACE != "Unknown") %>%
         mutate(total_days = to_num(Days.in.Jail) + to_num(Hours)/24 + to_num(Minutes)/1440) %>%
         group_by(RACE,CITY) %>%
         summarise(total = n(),avg = round(mean(total_days,na.rm = T),digits = 4))  # a min is .0007 days
@@ -75,30 +72,30 @@ ccso5 = ccso5 %>% rename(Days = avg)
 library(shiny)
 library(scales)
 library(ggplot2)
-ui <- fluidPage(
+install.packages("shinythemes")
+library(shinythemes)
+ui <- fluidPage(theme = shinytheme("sandstone"),
   # App title ----
   titlePanel("Champaign County Jail (2011-2016)"),
   tabsetPanel(               
-    tabPanel("Crime Code",sidebarLayout(
-      sidebarPanel(
-        selectInput("crime","Select a Crime code :",unique(ccso2$CRIME.CODE),selected = "AGGRAVATED ASSAULT")
-        ),
+    tabPanel("Crime Code",
+             sidebarLayout(
+               sidebarPanel(
+                 selectInput("crime","Select a Crime code :",unique(ccso2$CRIME.CODE),selected = "AGGRAVATED ASSAULT")        ),
       mainPanel(
         plotOutput("plot"),
         tableOutput("contents")
-        )
-    )
-    ),
-    tabPanel("Employment Status", sidebarLayout(
-      sidebarPanel(
-        selectInput("Employment","Select an Employment Status", unique(ccso3$EMPLOYMENT.STATUS),selected = "Student")
-      ),
+        ))),
+    
+    tabPanel("Employment Status", 
+             sidebarLayout(
+               sidebarPanel(
+                 selectInput("Employment","Select an Employment Status", unique(ccso3$EMPLOYMENT.STATUS),selected = "Student")),
       mainPanel(
         plotOutput("eplot"),
         tableOutput("emp")
-        )
-    )
-    ), 
+        ))), 
+  
     tabPanel("Maritial Status", sidebarLayout(
       sidebarPanel(
         selectInput("maritial","Select a Maritial Status:", unique(ccso4$MARITIAL.STATUS),selected = "Single")
@@ -118,9 +115,10 @@ ui <- fluidPage(
         tableOutput("Region")
         )
     )
-    )
+    ))
   )
-)
+
+
  
 
 # Define server logic to read selected file ----
@@ -180,7 +178,7 @@ server <- function(input, output) {
     e = emp()
     table_emp = ccso3 %>% 
               filter(EMPLOYMENT.STATUS == e)
-    ggplot(table_emp, aes(x=RACE,y=Days,fill = RACE)) + geom_bar(stat = "identity") 
+    ggplot(table_emp, aes(x=RACE,y=Days,fill = RACE)) + geom_bar(stat = "identity")
   })
   
 
@@ -198,6 +196,7 @@ server <- function(input, output) {
       ggplot(table_ct, aes(x=RACE,y=Days,fill =RACE)) + geom_bar(stat = "identity")
   })
 }
+
 # Run the app ----
 shinyApp(ui, server)
 ```
